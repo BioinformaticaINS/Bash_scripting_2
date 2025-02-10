@@ -106,7 +106,7 @@ Las variables especiales en Bash son predefinidas y tienen significados específ
 ```bash
 #!/bin/bash
 echo "Nombre del script: $0"
-echo "Primer argumento (archivo FASTQ): $1"
+echo "Primer argumento (archivo FASTQ): $1" # (del 1 al 9) -> ${10} ${11}
 echo "Número de argumentos: $#"
 echo "PID del script: $$"
 ```
@@ -131,7 +131,20 @@ Sintaxis:
 (base) ins_user@VirtualBox:~$read var1
 Hola # La palabra introducida se almacena en la
 variable var1
-(base) ins_user@VirtualBox:~$echo var
+(base) ins_user@VirtualBox:~$echo var1
+Hola
+(base) ins_user@VirtualBox:~$read var1 var2
+analisis bioinformática
+(base) ins_user@VirtualBox:~$echo var1
+analisis
+(base) ins_user@VirtualBox:~$echo var2
+bioinformática
+(base) ins_user@VirtualBox:~$read var1 var2
+vamos incrementando nuestro conocimiento
+(base) ins_user@VirtualBox:~$echo var1
+vamos
+(base) ins_user@VirtualBox:~$echo var2
+incrementando nuestro conocimiento
 ```
 
 **Ejemplo bioinformático:**
@@ -157,8 +170,8 @@ Las expresiones regulares (regex) son patrones que permiten buscar y manipular t
 # Buscar todas las secuencias que contengan "ATG" en un archivo FASTA
 grep "ATG" secuencias.fasta
 ```
+Pero ¿y si queremos buscar todos los números que aparecen en un texto? ¿O todas las líneas que empiezan por una letra mayúscula?
 
-Este comando busca todas las líneas en un archivo FASTA que contengan el codón de inicio "ATG".
 
 ---
 
@@ -217,12 +230,276 @@ Este comando busca secuencias que comienzan con "ATG" y terminan con "TAA".
 
 Los rangos de caracteres permiten definir un conjunto de caracteres que pueden coincidir en una expresión regular.
 
-**Ejemplo bioinformático:**
-```bash
-#!/bin/bash
-# Buscar secuencias que contengan solo nucleótidos (A, T, C, G)
-grep "^[ATCG]*$" secuencias.fasta
+### **Tabla de clases de caracteres**
+
+| **Clase**       | **Caracteres**               | **Significado**                                                                 |
+|------------------|------------------------------|---------------------------------------------------------------------------------|
+| `[:alnum:]`      | `[A-Za-z0-9]`                | Caracteres alfanuméricos (letras mayúsculas, minúsculas y dígitos).             |
+| `[:word:]`       | `[A-Za-z0-9_]`               | Caracteres alfanuméricos y el guion bajo (`_`).                                 |
+| `[:alpha:]`      | `[A-Za-z]`                   | Caracteres alfabéticos (solo letras mayúsculas y minúsculas).                   |
+| `[:blank:]`      | `[\t]`                       | Espacio y tabulador.                                                            |
+| `[:space:]`      | `[\n\r\f\v]`                 | Espacios (incluye salto de línea, retorno de carro, etc.).                      |
+| `[:digit:]`      | `[0-9]`                      | Dígitos (números del 0 al 9).                                                   |
+| `[:lower:]`      | `[a-z]`                      | Letras minúsculas.                                                              |
+| `[:upper:]`      | `[A-Z]`                      | Letras mayúsculas.                                                              |
+| `[:punct:]`      | `[!@#$%^&*()_+=\-[\]{};':",./<>?~]` | Caracteres de puntuación.                                                       |
+
+---
+
+### **Tabla de rangos de caracteres**
+
+| **Expresión** | **Coincidencia en el Texto**                                                                 |
+|---------------|---------------------------------------------------------------------------------------------|
+| `[abc]`       | El patrón coincide con la cadena si contiene una `a`, una `b` o una `c`.                    |
+| `[a-c]`       | Equivalente a `[abc]`. Coincide con cualquier carácter entre `a` y `c`.                     |
+| `c[aeo]sa`    | Coincide con las palabras `casa`, `cesa`, `cosa`.                                           |
+| `[^abc]`      | El patrón coincide con la cadena si **no** contiene ninguna `a`, `b` o `c`.                 |
+| `[0-9]`       | Coincide con una cadena que contenga cualquier dígito del `0` al `9`.                       |
+| `[^0-9]`      | Coincide con una cadena que **no** contenga ningún dígito.                                  |
+
+**Ejemplos bioinformáticos:**
+
+### **Ejemplo 1: Uso de `[:alnum:]`**
+
+**Objetivo**: Buscar líneas en un archivo FASTA que contengan solo caracteres alfanuméricos (letras y números).
+
+**Archivo FASTA (`secuencias.fasta`)**:
 ```
+>seq1
+ATCGATCG
+>seq2
+12345678
+>seq3
+ATCG1234
+>seq4
+ATCG!@#$
+```
+
+**Comando**:
+```bash
+grep "^>[[:alnum:]]*$" secuencias.fasta
+```
+
+**Resultado**:
+```
+>seq1
+>seq2
+>seq3
+```
+
+**Explicación**: El comando busca líneas de encabezado que contienen solo letras y números. La línea `>seq4` no coincide porque contiene caracteres especiales (`!@#$`).
+
+---
+
+### **Ejemplo 2: Uso de `[:digit:]`**
+
+**Objetivo**: Buscar secuencias que contengan números en su identificador.
+
+**Archivo FASTA (`secuencias.fasta`)**:
+```
+>seq1
+ATCGATCG
+>seq2
+12345678
+>seq3
+ATCG1234
+>seq4
+ATCG!@#$
+```
+
+**Comando**:
+```bash
+grep "[[:digit:]]" secuencias.fasta
+```
+
+**Resultado**:
+```
+>seq2
+12345678
+>seq3
+ATCG1234
+```
+
+**Explicación**: El comando busca líneas que contienen dígitos. Las líneas `>seq2` y `>seq3` coinciden porque contienen números.
+
+---
+
+### **Ejemplo 3: Uso de `[A-Z]`**
+
+**Objetivo**: Buscar secuencias que contengan solo letras mayúsculas (A, T, C, G).
+
+**Archivo FASTA (`secuencias.fasta`)**:
+```
+>seq1
+ATCGATCG
+>seq2
+12345678
+>seq3
+ATCG1234
+>seq4
+ATCG!@#$
+```
+
+**Comando**:
+```bash
+grep "^[A-Z]*$" secuencias.fasta
+```
+
+**Resultado**:
+```
+ATCGATCG
+```
+
+**Explicación**: El comando busca líneas que contienen solo letras mayúsculas. Solo la línea `ATCGATCG` coincide porque no contiene números ni caracteres especiales.
+
+---
+
+### **Ejemplo 4: Uso de `[^0-9]`**
+
+**Objetivo**: Buscar secuencias que **no** contengan números.
+
+**Archivo FASTA (`secuencias.fasta`)**:
+```
+>seq1
+ATCGATCG
+>seq2
+12345678
+>seq3
+ATCG1234
+>seq4
+ATCG!@#$
+```
+
+**Comando**:
+```bash
+grep "^[^0-9]*$" secuencias.fasta
+```
+
+**Resultado**:
+```
+ATCGATCG
+ATCG!@#$
+```
+
+**Explicación**: El comando busca líneas que no contienen números. Las líneas `ATCGATCG` y `ATCG!@#$` coinciden porque no tienen dígitos.
+
+---
+
+### **Ejemplo 5: Uso de `c[aeo]sa`**
+
+**Objetivo**: Buscar nombres de genes que coincidan con el patrón `casa`, `cesa`, o `cosa`.
+
+**Archivo de genes (`genes.txt`)**:
+```
+casa
+cesa
+cosa
+cusa
+cisa
+```
+
+**Comando**:
+```bash
+grep "c[aeo]sa" genes.txt
+```
+
+**Resultado**:
+```
+casa
+cesa
+cosa
+```
+
+**Explicación**: El comando busca nombres de genes que coinciden con el patrón `c[aeo]sa`. Los nombres `casa`, `cesa` y `cosa` coinciden, mientras que `cusa` y `cisa` no.
+
+---
+
+### **Ejemplo 6: Uso de `[:punct:]`**
+
+**Objetivo**: Buscar líneas en un archivo de anotaciones que contengan caracteres de puntuación.
+
+**Archivo de anotaciones (`anotaciones.txt`)**:
+```
+Gene1: Expressed in liver.
+Gene2: Expressed in brain, heart.
+Gene3: Expressed in kidney.
+Gene4: Expressed in lung!
+```
+
+**Comando**:
+```bash
+grep "[[:punct:]]" anotaciones.txt
+```
+
+**Resultado**:
+```
+Gene1: Expressed in liver.
+Gene2: Expressed in brain, heart.
+Gene4: Expressed in lung!
+```
+
+**Explicación**: El comando busca líneas que contienen caracteres de puntuación. Las líneas `Gene1`, `Gene2` y `Gene4` coinciden porque contienen `:`, `,` y `!`.
+
+---
+
+### **Ejemplo 7: Uso de `[0-9]`**
+
+**Objetivo**: Buscar secuencias que contengan dígitos.
+
+**Archivo FASTA (`secuencias.fasta`)**:
+```
+>seq1
+ATCGATCG
+>seq2
+12345678
+>seq3
+ATCG1234
+>seq4
+ATCG!@#$
+```
+
+**Comando**:
+```bash
+grep "[0-9]" secuencias.fasta
+```
+
+**Resultado**:
+```
+12345678
+ATCG1234
+```
+
+**Explicación**: El comando busca líneas que contienen dígitos. Las líneas `12345678` y `ATCG1234` coinciden porque contienen números.
+
+---
+
+### **Ejemplo 8: Uso de `[:upper:]`**
+
+**Objetivo**: Buscar secuencias que contengan solo letras mayúsculas (A, T, C, G).
+
+**Archivo FASTA (`secuencias.fasta`)**:
+```
+>seq1
+ATCGATCG
+>seq2
+12345678
+>seq3
+ATCG1234
+>seq4
+ATCG!@#$
+```
+
+**Comando**:
+```bash
+grep "^[[:upper:]]*$" secuencias.fasta
+```
+
+**Resultado**:
+```
+ATCGATCG
+```
+
+**Explicación**: El comando busca líneas que contienen solo letras mayúsculas. Solo la línea `ATCGATCG` coincide porque no contiene números ni caracteres especiales.
 
 Este comando busca secuencias que contienen solo los nucleótidos A, T, C y G.
 
