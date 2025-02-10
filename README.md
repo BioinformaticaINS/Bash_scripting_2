@@ -216,13 +216,24 @@ Los metacaracteres son caracteres especiales que tienen un significado específi
    - `{n,m}`: Entre `n` y `m` repeticiones.
 
 **Ejemplo bioinformático:**
+
+Creación de secuencias.fasta:
+
+
+```
+>Secuencia1
+ATGCCGTAA
+>Secuencia2
+ATGGCTAGCTAA
+>Secuencia3
+ATGTTTAA
+```
+
 ```bash
 #!/bin/bash
 # Buscar secuencias que comiencen con "ATG" y terminen con "TAA"
 grep "^ATG.*TAA$" secuencias.fasta
 ```
-
-Este comando busca secuencias que comienzan con "ATG" y terminan con "TAA".
 
 ---
 
@@ -515,40 +526,141 @@ Los cuantificadores indican cuántas veces debe aparecer un carácter o grupo de
 - `{n}`: Exactamente `n` veces.
 - `{n,m}`: Entre `n` y `m` veces.
 
-**Ejemplo bioinformático:**
+¡Claro! Vamos a desglosar el uso del comando `grep "ATG\{3,5\}" secuencias.fasta` con un ejemplo concreto y resultados esperados.
+
+---
+
+### **Explicación del Comando**
+
+El comando `grep "ATG\{3,5\}" secuencias.fasta` busca en el archivo `secuencias.fasta` patrones que contengan la secuencia "ATG" repetida entre **3 y 5 veces**. Aquí está el desglose:
+
+- `ATG`: Es la secuencia que estamos buscando.
+- `\{3,5\}`: Es un cuantificador que indica que "ATG" debe aparecer entre 3 y 5 veces consecutivas.
+
+---
+
+### **Ejemplo con Datos Biológicos**
+### **Aplicación Bioinformática**
+
+Este tipo de búsqueda es útil en bioinformática para identificar regiones específicas en secuencias de ADN. Por ejemplo:
+- **Codones de inicio**: "ATG" es el codón de inicio en el código genético. Buscar repeticiones de "ATG" podría ayudar a identificar regiones de interés en secuencias genómicas.
+- **Motivos repetidos**: Algunas secuencias repetidas pueden tener funciones biológicas específicas, como la regulación de la expresión génica.
+
+---
+
+### **Ejemplo Ampliado**
+
+Supongamos que tienes un archivo FASTA más grande y quieres buscar repeticiones de "ATG" en las secuencias:
+
+#### **Archivo FASTA (`secuencias.fasta`)**:
+```
+>seq1
+ATGATGATGCGTAGCTAG
+>seq2
+ATGATGATGATGATGCGTAG
+>seq3
+ATGATGATGATGATGATG
+>seq4
+ATGCGTAGCTAG
+>seq5
+ATGATG
+>seq6
+ATGATGATG
+```
+
+#### **Comando**:
 ```bash
-#!/bin/bash
-# Buscar secuencias que contengan entre 3 y 5 repeticiones de "ATG"
 grep "ATG\{3,5\}" secuencias.fasta
 ```
 
-Este comando busca secuencias que contienen entre 3 y 5 repeticiones del codón "ATG".
-
----
-
-## 7. **Partes Básicas de un Shell Script**
-
-Un script de Shell tiene una estructura básica que incluye:
-
-- **Shebang (`#!/bin/bash`)**: Indica que el script debe ser ejecutado con Bash.
-- **Comentarios**: Líneas que comienzan con `#` y son ignoradas por el intérprete.
-- **Código**: Comandos y lógica del script.
-
-**Ejemplo bioinformático:**
-```bash
-#!/bin/bash
-# Script para contar el número de secuencias en un archivo FASTA
-echo "Número de secuencias en el archivo:"
-grep -c "^>" secuencias.fasta
+#### **Resultado Esperado**:
 ```
-
-Este script cuenta el número de secuencias en un archivo FASTA.
-
+ATGATGATGCGTAGCTAG
+ATGATGATGATGATGCGTAG
+ATGATGATGATGATGATG
+ATGATGATG
+```
 ---
 
-## 8. **Listas con BASH**
+## 7. **Listas con BASH**
 
 Las listas (arrays) en Bash permiten almacenar múltiples valores en una sola variable.
+
+• Variable con múltiples valores (distinta naturaleza).
+• Valores secuenciales.
+• NO hay límite máximo.
+• El índice del campo comienza en cero.
+
+**Ejemplo:**
+
+```bash
+(base) ins_user@VirtualBox:~$numeros=(1 2 3 4 5)
+(base) ins_user@VirtualBox:~$num[0]=1
+(base) ins_user@VirtualBox:~$num[1]=2
+(base) ins_user@VirtualBox:~$num[2]=3
+```
+
+Mostrar el contenido completo de una lista
+
+Sintaxis: `echo ${lista[@]}`
+        : `echo ${lista[*]}`
+
+
+```bash
+(base) ins_user@VirtualBox:~$numeros=(1 2 3 4 5)
+(base) ins_user@VirtualBox:~$echo ${numeros[*]}
+1 2 3 4 5
+(base) ins_user@VirtualBox:~$echo ${numeros[@]}
+```
+
+Acceder a un elemento de una lista
+
+sintaxis: `echo ${numeros[indice o posicion]}`
+
+```bash
+(base) ins_user@VirtualBox:~$numeros=(1 2 3 4 5)
+(base) ins_user@VirtualBox:~${numeros[0]}
+1
+(base) ins_user@VirtualBox:~${numeros[1]}
+2
+....
+```
+
+Añadir o modificar un elemento a una lista
+
+```bash
+(base) ins_user@VirtualBox:~$numeros=(1 2 3 4 5)
+(base) ins_user@VirtualBox:~${numeros[*]}
+1 2 3 4 5
+(base) ins_user@VirtualBox:~$numeros[5]=6
+(base) ins_user@VirtualBox:~${numeros[*]}
+1 2 3 4 5 6
+```
+
+Añadir al final, sin necesidad de especificar el índice
+
+Sintaxis: `numeros+=(nuevo_valor(es))`
+
+```bash
+(base) ins_user@VirtualBox:~$numeros=(1 2 3 4 5)
+(base) ins_user@VirtualBox:~${numeros[*]}
+1 2 3 4 5
+(base) ins_user@VirtualBox:~$numeros+=(8 9 10)
+(base) ins_user@VirtualBox:~${numeros[*]}
+1 2 3 4 5 8 9 10
+```
+
+Longitud de un lista 
+
+sintaxis: `echo ${#numeros[*]}`
+
+```bash
+(base) ins_user@VirtualBox:~$numeros=(1 2 3 4 5)
+(base) ins_user@VirtualBox:~${numeros[*]}
+1 2 3 4 5
+(base) ins_user@VirtualBox:~$echo ${#numeros[*]}
+5
+```
 
 **Ejemplo bioinformático:**
 ```bash
@@ -570,6 +682,76 @@ Este script procesa una lista de archivos FASTQ.
 ## 9. **Control de Flujo**
 
 El control de flujo permite ejecutar comandos condicionalmente o en bucles.
+
+![](https://procomsys.wordpress.com/wp-content/uploads/2018/05/escon.png)
+
+![](https://bookdown.org/hneth/ds4psy/images/bart/bart_board_for.png)
+
+**Sintaxis de bucle FOR**
+
+Se usa para ejecutar un conjunto de comandos dado un número conocido de veces.
+
+```bash
+for i in 1 2 3 4 5 .. N # i iterador, N: Lista de elementos 
+do
+<-->COMANDO 1 # <--> sangrado
+<-->COMANDO 2
+    ...
+<-->COMANDO N
+done
+```
+
+Ejemplos:
+
+```bash
+#!/bin/bash
+
+for num in 1 2 3 4 5
+do
+   echo "Hello $num"
+done
+```
+
+Por línea de comandos
+
+```bash
+(base) ins_user@VirtualBox:~$ for num in 1 2 3 4 5; do echo "Hello $num"; done
+```
+
+Aplicado a lista de números:
+
+```bash
+#!/bin/bash
+for num in {1..5}
+do
+   echo "Hello $num"
+done
+```
+
+Por línea de comandos
+
+```bash
+(base) ins_user@VirtualBox:~$ for num in {1..10..2}; do echo "$num"; done
+```
+
+```bash
+#!/bin/bash
+num=(1 2 3 4 5)
+for num in ${num[@]}
+do
+   echo "Hello $num"
+done
+```
+
+```bash
+#!/bin/bash
+
+genes=(SOX13 PAX5 TC1 ADF)
+for gene in ${genes[@]}
+do
+   echo "La longituf de $gene es ${#gene}"
+done
+```
 
 **Ejemplo bioinformático:**
 ```bash
