@@ -760,9 +760,9 @@ done
 # Script para automatizar el procesamiento de archivos FASTQ con datos de Ebola
 
 # Definir variables para las carpetas
-REF_DIR="refs"          # Carpeta para el genoma de referencia
-RAW_DATA_DIR="raw_data" # Carpeta para los datos crudos (FASTQ)
-RESULTS_DIR="results"   # Carpeta para los resultados (BAM, SAM, etc.)
+REF_DIR="Proyecto_NGS/refs"          # Carpeta para el genoma de referencia
+RAW_DATA_DIR="Proyecto_NGS/raw_data" # Carpeta para los datos crudos (FASTQ)
+RESULTS_DIR="Proyecto_NGS/results"   # Carpeta para los resultados (BAM, SAM, etc.)
 
 # Crear directorios si no existen
 mkdir -p $REF_DIR
@@ -771,9 +771,9 @@ mkdir -p $RESULTS_DIR
 
 # Instalar herramientas necesarias
 echo "Instalando herramientas..."
-sudo apt update
+sudo apt update && sudo apt upgrade
 sudo apt install -y bwa bowtie2 samtools fastp
-pip install bio --upgrade
+sudo pip install bio --upgrade
 
 # Descargar el genoma de referencia (Ebola, cepa de 1976)
 echo "Descargando genoma de referencia..."
@@ -814,7 +814,6 @@ for file in "${fastq_files[@]}"; do
         --html "${file%.fastq}_fastp_report.html" \
         --json "${file%.fastq}_fastp_report.json" \
         --qualified_quality_phred 20 \
-        --unqualified_percent_limit 40 \
         --length_required 50
     
     echo "Filtrado de $file completado."
