@@ -753,50 +753,141 @@ do
 done
 ```
 
-**Ejemplo bioinformático:**
-```bash
-#!/bin/bash
-# Bucle para procesar múltiples archivos FASTQ
-for file in *.fastq; do
-    if [[ -f "$file" ]]; then
-        echo "Procesando $file..."
-        # Aquí iría el comando para procesar el archivo FASTQ
-    else
-        echo "$file no es un archivo válido."
-    fi
-done
-```
-
-Este script procesa todos los archivos FASTQ en el directorio actual.
-
----
-
 ## Ejemplo de Aplicación Bioinformática
 
-**Procesamiento Automatizado de Archivos FASTQ:**
-
 ```bash
-#!/bin/bash
-# Script para automatizar el procesamiento de archivos FASTQ
+#!/bin/bash 
+# Script para automatizar el procesamiento de archivos FASTQ con datos de Ebola
 
-# Lista de archivos FASTQ
-fastq_files=("sample1.fastq" "sample2.fastq" "sample3.fastq")
+# Definir variables para las carpetas
+REF_DIR="Proyecto_NGS/refs"          # Carpeta para el genoma de referencia
+RAW_DATA_DIR="Proyecto_NGS/raw_data" # Carpeta para los datos crudos (FASTQ)
+RESULTS_DIR="Proyecto_NGS/results"   # Carpeta para los resultados (BAM, SAM, etc.)
+
+# Crear directorios si no existen
+mkdir -p $REF_DIR
+mkdir -p $RAW_DATA_DIR
+mkdir -p $RESULTS_DIR
+
+# Instalar herramientas necesarias
+echo "Instalando herramientas..."
+sudo apt update
+sudo apt install -y bwa bowtie2 samtools
+pip install bio --upgrade
+
+# Descargar el genoma de referencia (Ebola, cepa de 1976)
+echo "Descargando genoma de referencia..."
+bio fetch AF086833 --format fasta > $REF_DIR/ebola_ref.fa
+
+# Descargar datos de secuenciación (SRR1972739, 10,000 lecturas)
+echo "Descargando datos de secuenciación..."
+fastq-dump -X 10000 --split-files SRR1972739 -O $RAW_DATA_DIR
+
+# Crear índice con BWA
+echo "Creando índice con BWA..."
+bwa index $REF_DIR/ebola_ref.fa
+
+# Crear índice con Bowtie2
+echo "Creando índice con Bowtie2..."
+bowtie2-build $REF_DIR/ebola_ref.fa $REF_DIR/ebola_ref
+
+# Verificar los archivos generados
+echo "Verificando archivos generados..."
+ls $REF_DIR/
+
+# Lista de archivos FASTQ (lecturas forward y reverse)
+fastq_files=("$RAW_DATA_DIR/SRR1972739_1.fastq" "$RAW_DATA_DIR/SRR1972739_2.fastq")
 
 # Procesar cada archivo FASTQ
 for file in "${fastq_files[@]}"; do
     echo "Procesando $file..."
     
     # Paso 1: Control de calidad con FastQC
-    fastqc $file
+    echo "Realizando control de calidad con FastQC..."
+    fastqc $file -o $RESULTS_DIR/fastqc_output
     
-    # Paso 2: Filtrar secuencias de baja calidad
-    trimmomatic SE -phred33 $file "${file%.fastq}_filtered.fastq" LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:50
+    # Paso 2: Filtrar secuencias de baja calidad con Trimmomatic
+    echo "Filtrando secuencias de baja calidad..."
+    trimmomatic PE -phred33 \
+        $file \
+        "${file%.fastq}_paired_filtered.fastq" \
+        "${file%.fastq}_unpaired_filtered.fastq" \
+        LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:50
     
-    # Paso 3: Alineamiento con BWA
-    bwa mem referencia.fasta "${file%.fastq}_filtered.fastq" > "${file%.fastq}.sam"
-    
-    echo "Procesamiento de $file completado."
+    echo "Filtrado de $file completado."
 done
+
+# Paso 3: Alineamiento con BWA (modo paired-end)
+echo "Alineando lecturas con BWA..."
+bwa mem $REF_DIR/ebola_ref.fa \
+    $RAW_DATA_DIR/SRR1972739_1_paired_filtered.fastq \
+    $RAW_DATA_DIR/SRR1972739_2_paired_filtered.fastq > $RESULTS_DIR/bwa_output.sam
+
+# Verificar resultados iniciales
+echo "Verificando resultados de alineación..."
+head -n 20 $RESULTS_DIR/bwa_output.sam
+
+# Convertir SAM a BAM y ordenar
+echo "Convirtiendo SAM a BAM y ordenando..."
+samtools view -S -b $RESULTS_DIR/bwa_output.sam > $RESULTS_DIR/bwa_output.bam
+samtools sort $RESULTS_DIR/bwa_output.bam -o $RESULTS_DIR/bwa_output_sorted.bam
+
+# Indexar el archivo BAM para visualización en IGV
+echo "Indexando archivo BAM..."
+samtools index $RESULTS_DIR/bwa_output_sorted.bam
+
+echo "Procesamiento completado. Archivos BAM listos para visualización en IGV."
+echo "Resultados guardados en la carpeta: $RESULTS_DIR"
 ```
 
-Este script automatiza el procesamiento de archivos FASTQ, incluyendo control de calidad, filtrado y alineamiento.
+---
+
+### **Explicación de las Variables**
+
+1. **`REF_DIR="refs"`**:
+   - Define la carpeta donde se almacenará el genoma de referencia y sus índices.
+   - Ejemplo: `refs/ebola_ref.fa`, `refs/ebola_ref.1.bt2`, etc.
+
+2. **`RAW_DATA_DIR="raw_data"`**:
+   - Define la carpeta donde se descargarán y almacenarán los archivos FASTQ crudos.
+   - Ejemplo: `raw_data/SRR1972739_1.fastq`, `raw_data/SRR1972739_2.fastq`.
+
+3. **`RESULTS_DIR="results"`**:
+   - Define la carpeta donde se guardarán los resultados del procesamiento, como archivos BAM, SAM, y salidas de FastQC.
+   - Ejemplo: `results/bwa_output.sam`, `results/bwa_output_sorted.bam`, `results/fastqc_output/`.
+
+---
+
+### **Estructura de Carpetas Resultante**
+
+Después de ejecutar el script, la estructura de carpetas será la siguiente:
+
+```
+.
+├── refs/
+│   ├── ebola_ref.fa
+│   ├── ebola_ref.fa.amb
+│   ├── ebola_ref.fa.ann
+│   ├── ebola_ref.fa.bwt
+│   ├── ebola_ref.fa.pac
+│   ├── ebola_ref.fa.sa
+│   ├── ebola_ref.1.bt2
+│   ├── ebola_ref.2.bt2
+│   ├── ebola_ref.3.bt2
+│   ├── ebola_ref.4.bt2
+│   ├── ebola_ref.rev.1.bt2
+│   └── ebola_ref.rev.2.bt2
+├── raw_data/
+│   ├── SRR1972739_1.fastq
+│   └── SRR1972739_2.fastq
+└── results/
+    ├── fastqc_output/
+    │   ├── SRR1972739_1_fastqc.html
+    │   └── SRR1972739_2_fastqc.html
+    ├── bwa_output.sam
+    ├── bwa_output.bam
+    ├── bwa_output_sorted.bam
+    └── bwa_output_sorted.bam.bai
+```
+
+![MUCHAS GRACIAS](https://pbs.twimg.com/media/BdGmyPqCQAEBIeX.jpg)
