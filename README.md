@@ -756,13 +756,13 @@ done
 ## Ejemplo de Aplicación Bioinformática
 
 ```bash
-#!/bin/bash 
+#!/bin/bash
 # Script para automatizar el procesamiento de archivos FASTQ con datos de Ebola
 
 # Definir variables para las carpetas
-REF_DIR="Proyecto_NGS/refs"          # Carpeta para el genoma de referencia
-RAW_DATA_DIR="Proyecto_NGS/raw_data" # Carpeta para los datos crudos (FASTQ)
-RESULTS_DIR="Proyecto_NGS/results"   # Carpeta para los resultados (BAM, SAM, etc.)
+REF_DIR="refs"          # Carpeta para el genoma de referencia
+RAW_DATA_DIR="raw_data" # Carpeta para los datos crudos (FASTQ)
+RESULTS_DIR="results"   # Carpeta para los resultados (BAM, SAM, etc.)
 
 # Crear directorios si no existen
 mkdir -p $REF_DIR
@@ -772,7 +772,7 @@ mkdir -p $RESULTS_DIR
 # Instalar herramientas necesarias
 echo "Instalando herramientas..."
 sudo apt update
-sudo apt install -y bwa bowtie2 samtools
+sudo apt install -y bwa bowtie2 samtools fastp
 pip install bio --upgrade
 
 # Descargar el genoma de referencia (Ebola, cepa de 1976)
@@ -798,7 +798,8 @@ ls $REF_DIR/
 # Lista de archivos FASTQ (lecturas forward y reverse)
 fastq_files=("$RAW_DATA_DIR/SRR1972739_1.fastq" "$RAW_DATA_DIR/SRR1972739_2.fastq")
 
-# Procesar cada archivo FASTQ
+# Procesar cada archivo FASTQ con fastp
+echo "Procesando archivos FASTQ con fastp..."
 for file in "${fastq_files[@]}"; do
     echo "Procesando $file..."
     
@@ -806,13 +807,15 @@ for file in "${fastq_files[@]}"; do
     echo "Realizando control de calidad con FastQC..."
     fastqc $file -o $RESULTS_DIR/fastqc_output
     
-    # Paso 2: Filtrar secuencias de baja calidad con Trimmomatic
-    echo "Filtrando secuencias de baja calidad..."
-    trimmomatic PE -phred33 \
-        $file \
-        "${file%.fastq}_paired_filtered.fastq" \
-        "${file%.fastq}_unpaired_filtered.fastq" \
-        LEADING:20 TRAILING:20 SLIDINGWINDOW:4:20 MINLEN:50
+    # Paso 2: Filtrar secuencias de baja calidad con fastp
+    echo "Filtrando secuencias de baja calidad con fastp..."
+    fastp -i $file \
+        -o "${file%.fastq}_filtered.fastq" \
+        --html "${file%.fastq}_fastp_report.html" \
+        --json "${file%.fastq}_fastp_report.json" \
+        --qualified_quality_phred 20 \
+        --unqualified_percent_limit 40 \
+        --length_required 50
     
     echo "Filtrado de $file completado."
 done
@@ -820,8 +823,8 @@ done
 # Paso 3: Alineamiento con BWA (modo paired-end)
 echo "Alineando lecturas con BWA..."
 bwa mem $REF_DIR/ebola_ref.fa \
-    $RAW_DATA_DIR/SRR1972739_1_paired_filtered.fastq \
-    $RAW_DATA_DIR/SRR1972739_2_paired_filtered.fastq > $RESULTS_DIR/bwa_output.sam
+    $RAW_DATA_DIR/SRR1972739_1_filtered.fastq \
+    $RAW_DATA_DIR/SRR1972739_2_filtered.fastq > $RESULTS_DIR/bwa_output.sam
 
 # Verificar resultados iniciales
 echo "Verificando resultados de alineación..."
@@ -884,6 +887,12 @@ Después de ejecutar el script, la estructura de carpetas será la siguiente:
     ├── fastqc_output/
     │   ├── SRR1972739_1_fastqc.html
     │   └── SRR1972739_2_fastqc.html
+    ├── SRR1972739_1_filtered.fastq
+    ├── SRR1972739_2_filtered.fastq
+    ├── SRR1972739_1_fastp_report.html
+    ├── SRR1972739_1_fastp_report.json
+    ├── SRR1972739_2_fastp_report.html
+    ├── SRR1972739_2_fastp_report.json
     ├── bwa_output.sam
     ├── bwa_output.bam
     ├── bwa_output_sorted.bam
