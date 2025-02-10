@@ -1,5 +1,97 @@
 # Bash scripting 2
 
+## ¿Dónde se encuentra el archivo `.bashrc`?
+
+El archivo `.bashrc` es un script de shell que se ejecuta cada vez que un usuario inicia una nueva sesión de terminal en sistemas operativos basados en Unix, como Linux y macOS. Este archivo se encuentra en el directorio **home** del usuario.
+
+- **Ubicación**: `~/.bashrc`
+
+### Explicación:
+- `~` representa el directorio home del usuario actual. Por ejemplo, si el nombre de usuario es `usuario`, la ruta completa sería `/home/usuario/.bashrc` en sistemas Linux o `/Users/usuario/.bashrc` en macOS.
+
+## ¿Cómo agregamos un directorio de forma PERMANENTE al PATH?
+
+Para agregar un directorio de forma permanente al `PATH`, necesitas modificar el archivo `.bashrc` (o `.bash_profile` en algunos sistemas) y luego recargar la configuración.
+
+## Pasos para agregar un directorio al PATH:
+
+1. **Abrir el archivo `.bashrc` en un editor de texto**:
+   ```bash
+   nano ~/.bashrc
+   ```
+   (Puedes usar `nano`, `vim`, o cualquier otro editor de texto de tu preferencia).
+
+2. **Agregar la siguiente línea al final del archivo**:
+   ```bash
+   export PATH="/ruta/al/directorio:$PATH"
+   ```
+   Reemplaza `"/ruta/al/directorio"` con la ruta del directorio que deseas agregar.
+
+3. **Guardar y cerrar el archivo**:
+   - En `nano`, presiona `CTRL + O` para guardar y `CTRL + X` para salir.
+
+4. **Recargar el archivo `.bashrc` para aplicar los cambios**:
+   ```bash
+   source ~/.bashrc
+   ```
+   O simplemente cierra y vuelve a abrir la terminal.
+
+### Ejemplo:
+
+**Paso 1: Descarga del programa QUAST**
+
+```bash
+cd Bioprogrmas
+wget https://downloads.sourceforge.net/project/quast/quast-5.3.0.tar.gz
+tar xvfz quast-5.3.0.tar.gz
+cd quast-5.3.0
+ls
+```
+
+
+**Paso 2: Verificar la ubicación de QUAST**
+
+Primero, asegúrate de que el ejecutable de QUAST esté en la carpeta correcta. Supongamos que has descargado y descomprimido QUAST en `~/Bioprograms/quast-5.3.0/`. El ejecutable de QUAST se encuentra en el directorio principal o en el subdirectorio `bin/`, dependiendo de la versión.
+
+**Paso 2: Agregar QUAST al PATH** 
+
+Para agregar QUAST al `PATH`, necesitas modificar el archivo `.bashrc` (o `.bash_profile` en algunos sistemas) y luego recargar la configuración.
+
+**Pasos para agregar QUAST al PATH:**
+
+1. **Abrir el archivo `.bashrc` en un editor de texto**:
+   ```bash
+   nano ~/.bashrc
+   ```
+   (Puedes usar `nano`, `vim`, o cualquier otro editor de texto de tu preferencia).
+
+2. **Agregar la siguiente línea al final del archivo**:
+   ```bash
+   export PATH="$HOME/Bioprograms/quast-5.3.0:$PATH"
+   ```
+   Asegúrate de reemplazar `quast-5.3.0` con la versión exacta que tienes instalada si es diferente.
+
+3. **Guardar y cerrar el archivo**:
+   - En `nano`, presiona `CTRL + O` para guardar y `CTRL + X` para salir.
+
+4. **Recargar el archivo `.bashrc` para aplicar los cambios**:
+   ```bash
+   source ~/.bashrc
+   ```
+   O simplemente cierra y vuelve a abrir la terminal.
+
+### Paso 3: Verificar la instalación
+
+Para asegurarte de que QUAST se ha agregado correctamente al `PATH`, puedes verificar la versión de QUAST ejecutando:
+
+```bash
+quast --version
+```
+
+¿Problemas? Vamos a corregirlos....
+
+---
+
 ## 1. **Variables Especiales**
 
 Las variables especiales en Bash son predefinidas y tienen significados específicos. Algunas de las más comunes son:
@@ -25,13 +117,29 @@ Este script podría usarse para procesar un archivo FASTQ, donde el primer argum
 
 ## 2. **Comando `read`**
 
-El comando `read` permite leer la entrada del usuario y almacenarla en una variable.
+El comando `read` permite leer la entrada estándar del usuario y almacenarla en una variable.
+
+Sintaxis: 
+
+```
+(base) ins_user@VirtualBox:~$ read var1 var 2 ...
+```
+
+**Ejemplo:**
+
+```bash
+(base) ins_user@VirtualBox:~$read var1
+Hola # La palabra introducida se almacena en la
+variable var1
+(base) ins_user@VirtualBox:~$echo var
+```
 
 **Ejemplo bioinformático:**
 ```bash
 #!/bin/bash
 echo "Introduce el nombre del archivo FASTA:"
 read fasta_file
+SRR123456
 echo "Procesando el archivo $fasta_file..."
 ```
 
@@ -58,10 +166,41 @@ Este comando busca todas las líneas en un archivo FASTA que contengan el codón
 
 Los metacaracteres son caracteres especiales que tienen un significado específico en las expresiones regulares. Algunos de los más comunes son:
 
-- `.`: Cualquier carácter.
-- `*`: Cero o más repeticiones del carácter anterior.
-- `+`: Una o más repeticiones del carácter anterior.
-- `[]`: Define un rango de caracteres.
+| **Metacarácter** | **Descripción**                                                                 | **Ejemplo**                                                                                     |
+|-------------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| `.`               | Coincide con cualquier carácter excepto el salto de línea (`\n`).               | `a.b` coincide con `"aab"`, `"acb"`, `"a1b"`, pero no con `"ab"` ni `"a\nb"`.                   |
+| `*`               | Coincide con cero o más repeticiones del elemento anterior.                     | `ab*` coincide con `"a"`, `"ab"`, `"abb"`, `"abbb"`, etc.                                       |
+| `+`               | Coincide con una o más repeticiones del elemento anterior.                      | `ab+` coincide con `"ab"`, `"abb"`, `"abbb"`, pero no con `"a"`.                                |
+| `?`               | Coincide con cero o una repetición del elemento anterior.                       | `ab?` coincide con `"a"`, `"ab"`, pero no con `"abb"`.                                          |
+| `[]`              | Define un conjunto de caracteres. Coincide con cualquiera de los caracteres dentro de los corchetes. | `[abc]` coincide con `"a"`, `"b"`, `"c"`, pero no con `"d"`.                                   |
+| `[^]`             | Define un conjunto negado. Coincide con cualquier carácter que **no** esté en el conjunto. | `[^abc]` coincide con cualquier carácter excepto `"a"`, `"b"`, `"c"`.                          |
+| `()`              | Agrupa patrones para aplicar operadores a un grupo completo.                    | `(ab)+` coincide con `"ab"`, `"abab"`, `"ababab"`, etc.                                         |
+| `{}`              | Especifica un número exacto de repeticiones del elemento anterior.              | `a{3}` coincide con `"aaa"`. `a{2,4}` coincide con `"aa"`, `"aaa"`, `"aaaa"`.                   |
+| `^`               | Coincide con el inicio de una línea o cadena.                                   | `^a` coincide con `"abc"`, pero no con `"bac"`.                                                 |
+| `$`               | Coincide con el final de una línea o cadena.                                    | `a$` coincide con `"ba"`, pero no con `"abc"`.                                                  |
+| `\`               | Escapa un metacarácter para tratarlo como un carácter literal.                  | `\.` coincide con un punto literal (`"."`), en lugar de interpretarlo como "cualquier carácter".|
+| `\d`              | Coincide con cualquier dígito (equivalente a `[0-9]`).                          | `\d` coincide con `"1"`, `"2"`, etc., pero no con `"a"`.                                        |
+| `\w`              | Coincide con cualquier carácter alfanumérico o guion bajo (equivalente a `[a-zA-Z0-9_]`). | `\w` coincide con `"a"`, `"1"`, `"_"`, pero no con `"@"`.                                      |
+| `\s`              | Coincide con cualquier espacio en blanco (espacios, tabulaciones, saltos de línea). | `\s` coincide con `" "`, `"\t"`, `"\n"`.                                                       |
+| `\D`, `\W`, `\S`  | Negación de `\d`, `\w`, `\s`. Coinciden con cualquier cosa que **no** sea un dígito, alfanumérico o espacio en blanco, respectivamente. | `\D` coincide con `"a"`, `"@"`, pero no con `"1"`.                                             |
+| `|`               | Actúa como un operador OR lógico. Coincide con cualquiera de los patrones separados por `|`. | `a|b` coincide con `"a"` o `"b"`.                                                              |
+
+### **Explicación Adicional**
+1. **Agrupación con `()`**:
+   - Los paréntesis permiten agrupar partes de una expresión regular para aplicar operadores como `*`, `+`, o `?` a todo el grupo.
+   - Ejemplo: `(ab)+` significa que la secuencia `"ab"` debe repetirse una o más veces.
+
+2. **Rangos en `[]`**:
+   - Puedes usar rangos dentro de los corchetes para especificar conjuntos de caracteres.
+   - Ejemplo: `[a-z]` coincide con cualquier letra minúscula, `[0-9]` coincide con cualquier dígito.
+
+3. **Escapar metacaracteres con `\`**:
+   - Si necesitas buscar un metacarácter como un carácter literal (por ejemplo, un punto `.`), debes escaparlo con una barra invertida (`\.`).
+
+4. **Cuantificadores con `{}`**:
+   - `{n}`: Exactamente `n` repeticiones.
+   - `{n,}`: Al menos `n` repeticiones.
+   - `{n,m}`: Entre `n` y `m` repeticiones.
 
 **Ejemplo bioinformático:**
 ```bash
@@ -202,9 +341,3 @@ done
 ```
 
 Este script automatiza el procesamiento de archivos FASTQ, incluyendo control de calidad, filtrado y alineamiento.
-
----
-
-### Conclusión
-
-El dominio de estos conceptos de Bash scripting es esencial para la automatización de tareas bioinformáticas, como el procesamiento de archivos FASTQ y FASTA. La combinación de expresiones regulares, listas y control de flujo permite crear scripts potentes y eficientes para el análisis de datos biológicos.
