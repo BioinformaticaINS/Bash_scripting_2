@@ -752,16 +752,18 @@ done
 REF_DIR="Proyecto_NGS/refs"          # Carpeta para el genoma de referencia
 RAW_DATA_DIR="Proyecto_NGS/raw_data" # Carpeta para los datos crudos (FASTQ)
 RESULTS_DIR="Proyecto_NGS/results"   # Carpeta para los resultados (BAM, SAM, etc.)
+FASTQC_RESULTS_DIR="Proyecto_NGS/quality_control" # Carpeta para los resultados de FastQC
 
 # Crear directorios si no existen
 mkdir -p $REF_DIR
 mkdir -p $RAW_DATA_DIR
 mkdir -p $RESULTS_DIR
+mkdir -p $FASTQC_RESULTS_DIR
 
 # Instalar herramientas necesarias
 echo "Instalando herramientas..."
 sudo apt update && sudo apt upgrade
-sudo apt install -y bwa bowtie2 samtools fastp
+sudo apt install -y bwa bowtie2 samtools fastp bcftools
 sudo pip install bio --upgrade
 
 # Descargar el genoma de referencia (Ebola, cepa de 1976)
@@ -770,7 +772,7 @@ bio fetch AF086833 --format fasta > $REF_DIR/ebola_ref.fa
 
 # Descargar datos de secuenciación (SRR1972739, 10,000 lecturas)
 echo "Descargando datos de secuenciación..."
-fastq-dump -X 10000 --split-files SRR1972739 -O $RAW_DATA_DIR
+fastq-dump -X 10000 --split-files SRR1553500 -O $RAW_DATA_DIR
 
 # Crear índice con BWA
 echo "Creando índice con BWA..."
@@ -780,111 +782,65 @@ bwa index $REF_DIR/ebola_ref.fa
 echo "Creando índice con Bowtie2..."
 bowtie2-build $REF_DIR/ebola_ref.fa $REF_DIR/ebola_ref
 
-# Verificar los archivos generados
-echo "Verificando archivos generados..."
-ls $REF_DIR/
+# Procesar archivos FASTQ pareados con fastp
+echo "Procesando archivos FASTQ pareados con fastp..."
 
-# Lista de archivos FASTQ (lecturas forward y reverse)
-fastq_files=("$RAW_DATA_DIR/SRR1972739_1.fastq" "$RAW_DATA_DIR/SRR1972739_2.fastq")
+# Definir nombres de archivos de salida
+forward_output="$RAW_DATA_DIR/SRR1553500_1_filtered.fastq"
+reverse_output="$RAW_DATA_DIR/SRR1553500_2_filtered.fastq"
+html_report="$RAW_DATA_DIR/fastp_report.html"
+json_report="$RAW_DATA_DIR/fastp_report.json"
 
-# Procesar cada archivo FASTQ con fastp
-echo "Procesando archivos FASTQ con fastp..."
-for file in "${fastq_files[@]}"; do
-    echo "Procesando $file..."
-    
-    # Paso 1: Control de calidad con FastQC
-    echo "Realizando control de calidad con FastQC..."
-    fastqc $file -o $RESULTS_DIR/fastqc_output
-    
-    # Paso 2: Filtrar secuencias de baja calidad con fastp
-    echo "Filtrando secuencias de baja calidad con fastp..."
-    fastp -i $file \
-        -o "${file%.fastq}_filtered.fastq" \
-        --html "${file%.fastq}_fastp_report.html" \
-        --json "${file%.fastq}_fastp_report.json" \
-        --qualified_quality_phred 20 \
-        --length_required 50
-    
-    echo "Filtrado de $file completado."
-done
+# Ejecutar fastp para procesar los archivos pareados
+fastp -i "$RAW_DATA_DIR/SRR1553500_1.fastq" \
+      -I "$RAW_DATA_DIR/SRR1553500_2.fastq" \
+      -o "$forward_output" \
+      -O "$reverse_output" \
+      --html "$html_report" \
+      --json "$json_report"
+
+echo "Filtrado de archivos FASTQ pareados completado."
+
+# Verificar que los archivos filtrados existen
+if [[ ! -f "$forward_output" || ! -f "$reverse_output" ]]; then
+    echo "Error: Los archivos FASTQ filtrados no se generaron correctamente."
+    exit 1
+fi
 
 # Paso 3: Alineamiento con BWA (modo paired-end)
-echo "Alineando lecturas con BWA..."
+echo "Alineando lecturas cortas con BWA ..."
 bwa mem $REF_DIR/ebola_ref.fa \
-    $RAW_DATA_DIR/SRR1972739_1_filtered.fastq \
-    $RAW_DATA_DIR/SRR1972739_2_filtered.fastq > $RESULTS_DIR/bwa_output.sam
+    "$forward_output" \
+    "$reverse_output" > "$RESULTS_DIR/bwa_output.sam"
+
+# Paso 4: Alineamiento con Bowtie2 (modo paired-end)
+echo "Alineando lecturas cortas con Bowtie2 ..."
+bowtie2 -x $REF_DIR/ebola_ref \
+    -1 "$forward_output" \
+    -2 "$reverse_output" \
+    -S "$RESULTS_DIR/bowtie2_output.sam"
 
 # Verificar resultados iniciales
 echo "Verificando resultados de alineación..."
-head -n 20 $RESULTS_DIR/bwa_output.sam
+head -n 20 "$RESULTS_DIR/bwa_output.sam"
 
 # Convertir SAM a BAM y ordenar
 echo "Convirtiendo SAM a BAM y ordenando..."
-samtools view -S -b $RESULTS_DIR/bwa_output.sam > $RESULTS_DIR/bwa_output.bam
-samtools sort $RESULTS_DIR/bwa_output.bam -o $RESULTS_DIR/bwa_output_sorted.bam
+samtools view -b "$RESULTS_DIR/bwa_output.sam" > "$RESULTS_DIR/bwa_output.bam"
+samtools view -b "$RESULTS_DIR/bowtie2_output.sam" > "$RESULTS_DIR/bowtie2_output.bam"
+
+samtools sort "$RESULTS_DIR/bwa_output.bam" -o "$RESULTS_DIR/bwa_output_sorted.bam"
 
 # Indexar el archivo BAM para visualización en IGV
 echo "Indexando archivo BAM..."
-samtools index $RESULTS_DIR/bwa_output_sorted.bam
+samtools index "$RESULTS_DIR/bwa_output_sorted.bam"
 
-echo "Procesamiento completado. Archivos BAM listos para visualización en IGV."
+# Llamado de variantes
+echo "Realizando el llamado de variantes ..."
+bcftools mpileup -O v -f $REF_DIR/ebola_ref.fa "$RESULTS_DIR/bwa_output_sorted.bam" | \
+    bcftools call --ploidy 1 -vm -O v > "$RESULTS_DIR/variants.vcf"
+
+echo "Procesamiento completado. Archivos BAM y VCF listos para visualización en IGV."
 echo "Resultados guardados en la carpeta: $RESULTS_DIR"
 ```
-
----
-
-### **Explicación de las Variables**
-
-1. **`REF_DIR="refs"`**:
-   - Define la carpeta donde se almacenará el genoma de referencia y sus índices.
-   - Ejemplo: `refs/ebola_ref.fa`, `refs/ebola_ref.1.bt2`, etc.
-
-2. **`RAW_DATA_DIR="raw_data"`**:
-   - Define la carpeta donde se descargarán y almacenarán los archivos FASTQ crudos.
-   - Ejemplo: `raw_data/SRR1972739_1.fastq`, `raw_data/SRR1972739_2.fastq`.
-
-3. **`RESULTS_DIR="results"`**:
-   - Define la carpeta donde se guardarán los resultados del procesamiento, como archivos BAM, SAM, y salidas de FastQC.
-   - Ejemplo: `results/bwa_output.sam`, `results/bwa_output_sorted.bam`, `results/fastqc_output/`.
-
----
-
-### **Estructura de Carpetas Resultante**
-
-Después de ejecutar el script, la estructura de carpetas será la siguiente:
-
-```
-.
-├── refs/
-│   ├── ebola_ref.fa
-│   ├── ebola_ref.fa.amb
-│   ├── ebola_ref.fa.ann
-│   ├── ebola_ref.fa.bwt
-│   ├── ebola_ref.fa.pac
-│   ├── ebola_ref.fa.sa
-│   ├── ebola_ref.1.bt2
-│   ├── ebola_ref.2.bt2
-│   ├── ebola_ref.3.bt2
-│   ├── ebola_ref.4.bt2
-│   ├── ebola_ref.rev.1.bt2
-│   └── ebola_ref.rev.2.bt2
-├── raw_data/
-│   ├── SRR1972739_1.fastq
-│   └── SRR1972739_2.fastq
-└── results/
-    ├── fastqc_output/
-    │   ├── SRR1972739_1_fastqc.html
-    │   └── SRR1972739_2_fastqc.html
-    ├── SRR1972739_1_filtered.fastq
-    ├── SRR1972739_2_filtered.fastq
-    ├── SRR1972739_1_fastp_report.html
-    ├── SRR1972739_1_fastp_report.json
-    ├── SRR1972739_2_fastp_report.html
-    ├── SRR1972739_2_fastp_report.json
-    ├── bwa_output.sam
-    ├── bwa_output.bam
-    ├── bwa_output_sorted.bam
-    └── bwa_output_sorted.bam.bai
-```
-
 ![MUCHAS GRACIAS](https://pbs.twimg.com/media/BdGmyPqCQAEBIeX.jpg)
