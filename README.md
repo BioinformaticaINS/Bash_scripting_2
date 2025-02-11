@@ -85,7 +85,7 @@ Para agregar QUAST al `PATH`, necesitas modificar el archivo `.bashrc` (o `.bash
 Para asegurarte de que QUAST se ha agregado correctamente al `PATH`, puedes verificar la versión de QUAST ejecutando:
 
 ```bash
-quast --version
+quast.py --version
 ```
 
 ¿Problemas? Vamos a corregirlos....
