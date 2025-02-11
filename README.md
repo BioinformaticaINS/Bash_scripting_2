@@ -738,7 +738,7 @@ done
 genes=(SOX13 PAX5 TC1 ADF)
 for gene in ${genes[@]}
 do
-   echo "La longituf de $gene es ${#gene}"
+   echo "La longitud del $gene es ${#gene}"
 done
 ```
 
