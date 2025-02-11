@@ -525,18 +525,7 @@ Los cuantificadores indican cuántas veces debe aparecer un carácter o grupo de
 - `+`: Una o más veces.
 - `{n}`: Exactamente `n` veces.
 - `{n,m}`: Entre `n` y `m` veces.
-
-¡Claro! Vamos a desglosar el uso del comando `grep "ATG\{3,5\}" secuencias.fasta` con un ejemplo concreto y resultados esperados.
-
----
-
-### **Explicación del Comando**
-
-El comando `grep "ATG\{3,5\}" secuencias.fasta` busca en el archivo `secuencias.fasta` patrones que contengan la secuencia "ATG" repetida entre **3 y 5 veces**. Aquí está el desglose:
-
-- `ATG`: Es la secuencia que estamos buscando.
-- `\{3,5\}`: Es un cuantificador que indica que "ATG" debe aparecer entre 3 y 5 veces consecutivas.
-
+  
 ---
 
 ### **Ejemplo con Datos Biológicos**
@@ -570,7 +559,7 @@ ATGATGATG
 
 #### **Comando**:
 ```bash
-grep "ATG\{3,5\}" secuencias.fasta
+grep -E "(ATG){3,5}" secuencias.fasta
 ```
 
 #### **Resultado Esperado**:
