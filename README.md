@@ -131,19 +131,19 @@ Sintaxis:
 (base) ins_user@VirtualBox:~$read var1
 Hola # La palabra introducida se almacena en la
 variable var1
-(base) ins_user@VirtualBox:~$echo var1
+(base) ins_user@VirtualBox:~$echo $var1
 Hola
 (base) ins_user@VirtualBox:~$read var1 var2
 analisis bioinformática
-(base) ins_user@VirtualBox:~$echo var1
+(base) ins_user@VirtualBox:~$echo $var1
 analisis
-(base) ins_user@VirtualBox:~$echo var2
+(base) ins_user@VirtualBox:~$echo $var2
 bioinformática
 (base) ins_user@VirtualBox:~$read var1 var2
 vamos incrementando nuestro conocimiento
-(base) ins_user@VirtualBox:~$echo var1
+(base) ins_user@VirtualBox:~$echo $var1
 vamos
-(base) ins_user@VirtualBox:~$echo var2
+(base) ins_user@VirtualBox:~$echo $var2
 incrementando nuestro conocimiento
 ```
 
