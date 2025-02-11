@@ -801,12 +801,6 @@ fastp -i "$RAW_DATA_DIR/SRR1553500_1.fastq" \
 
 echo "Filtrado de archivos FASTQ pareados completado."
 
-# Verificar que los archivos filtrados existen
-if [[ ! -f "$forward_output" || ! -f "$reverse_output" ]]; then
-    echo "Error: Los archivos FASTQ filtrados no se generaron correctamente."
-    exit 1
-fi
-
 # Paso 3: Alineamiento con BWA (modo paired-end)
 echo "Alineando lecturas cortas con BWA ..."
 bwa mem $REF_DIR/ebola_ref.fa \
